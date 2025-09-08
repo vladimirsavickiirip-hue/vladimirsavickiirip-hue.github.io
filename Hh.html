@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Изменить размер фото.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+        }
+        .image-preview-container {
+            transition: all 0.3s ease;
+        }
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background-color: #f0f9ff;
+        }
+        .resolution-option {
+            transition: all 0.2s ease;
+        }
+        .resolution-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .resolution-option.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .slider-container {
+            background: linear-gradient(to right, #3b82f6, #8b5cf6);
+            height: 6px;
+            border-radius: 3px;
+        }
+        .slider-thumb {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 2px solid #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .processing-overlay {
+            background: rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <div class="container mx-auto px-4 py-8 flex-grow">
+        <div class="text-center mb-12 mt-6">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-3">Изменить размер фото.</h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">Загрузите ваше фото и выберите разрешение. Всё очень просто!</p>
+        </div>
+
+        <div class="max-w-4xl mx-auto">
+            <!-- Upload Section -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+                <div id="uploadArea" class="upload-area rounded-xl p-10 text-center cursor-pointer">
+                    <div class="flex justify-center mb-4">
+                        <i data-feather="upload-cloud" class="text-blue-500" width="48" height="48"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2"></h3>
+                    <p class="text-gray-500 mb-4"></p>
+                    <button id="browseButton" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                        Просмотреть файлы.
+                    </button>
+                    <input type="file" id="fileInput" accept="image/*" class="hidden">
+                    <p class="text-gray-400 text-sm mt-4">Поддержка JPG, PNG, WEBP до 10MB.</p>
+                </div>
+            </div>
+
+            <!-- Preview and Controls Section -->
+            <div id="previewSection" class="hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Original Image Preview -->
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Обычное фото</h2>
+                        <div class="image-preview-container bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center h-80">
+                            <img id="previewImage" src="" alt="Original" class="max-h-full max-w-full object-contain">
+                        </div>
+                        <div class="mt-4 text-center">
+                            <p id="originalSize" class="text-gray-600"></p>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Настройки размера.</h2>
+                        
+                        <!-- Preset Resolutions -->
+                        <div class="mb-6">
+                            <h3 class="font-medium text-gray-700 mb-3">Пресеты.</h3>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <button class="resolution-option border rounded-lg py-3 px-2 text-center border-gray-300" data-width="800" data-height="600">800×600</button>
+                                <button class="resolution-option border rounded-lg py-3 px-2 text-center border-gray-300" data-width="1024" data-height="768">1024×768</button>
+                                <button class="resolution-option border rounded-lg py-3 px-2 text-center border-gray-300" data-width="1280" data-height="720">1280×720</button>
+                                <button class="resolution-option border rounded-lg py-3 px-2 text-center border-gray-300" data-width="1920" data-height="1080">1920×1080</button>
+                                <button class="resolution-option border rounded-lg py-3 px-2 text-center border-gray-300" data-width="2560" data-height="1440">2560×1440</button>
+                                <button class="resolution-option border rounded-lg py-3 px-2 text-center border-gray-300" data-width="3840" data-height="2160">3840×2160</button>
+                            </div>
+                        </div>
+
+                        <!-- Custom Resolution -->
+                        <div class="mb-6">
+                            <h3 class="font-medium text-gray-700 mb-3">Свой размер.</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Ширина. (px)</label>
+                                    <input type="number" id="customWidth" min="1" max="8000" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Высота. (px)</label>
+                                    <input type="number" id="customHeight" min="1" max="8000" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quality Slider -->
+                        <div class="mb-8">
+                            <div class="flex justify-between mb-2">
+                                <label class="block text-sm font-medium text-gray-600">Качество.</label>
+                                <span id="qualityValue" class="text-sm font-medium text-gray-700">90%</span>
+                            </div>
+                            <div class="slider-container relative">
+                                <input type="range" id="qualitySlider" min="10" max="100" value="90" class="absolute w-full h-full opacity-0 cursor-pointer">
+                                <div class="slider-thumb absolute top-1/2 transform -translate-y-1/2" style="left: 90%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button id="processBtn" class="flex-grow bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i data-feather="play" class="mr-2"></i> Изменить.
+                            </button>
+                            <button id="downloadBtn" class="flex-grow bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i data-feather="download" class="mr-2"></i> Скачать обработанное фото.
+                            </button>
+                            <button id="resetBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i data-feather="refresh-ccw" class="mr-2"></i> Сбросить.
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Resized Image Preview -->
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Изменёное фото.</h2>
+                        <div class="image-preview-container bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center h-80">
+                            <img id="resizedImage" src="" alt="Resized" class="max-h-full max-w-full object-contain">
+                        </div>
+                        <div class="mt-4 text-center">
+                            <p id="resizedSize" class="text-gray-600"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Overlay -->
+    <div id="processingOverlay" class="processing-overlay fixed inset-0 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center shadow-2xl">
+            <div class="mb-4">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-800 mb-2">Процесс</h3>
+            <p class="text-gray-600">Ваше фото обрабатывается...</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="py-6 text-center text-gray-600 text-sm">
+        <p>Vova Gluk</p>
+    </footer>
+
+    <script>
+        // Initialize Feather Icons
+        feather.replace();
+
+        // DOM Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const browseButton = document.getElementById('browseButton');
+        const previewSection = document.getElementById('previewSection');
+        const previewImage = document.getElementById('previewImage');
+        const originalSize = document.getElementById('originalSize');
+        const customWidth = document.getElementById('customWidth');
+        const customHeight = document.getElementById('customHeight');
+        const qualitySlider = document.getElementById('qualitySlider');
+        const qualityValue = document.getElementById('qualityValue');
+        const processBtn = document.getElementById('processBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const processingOverlay = document.getElementById('processingOverlay');
+        const resolutionOptions = document.querySelectorAll('.resolution-option');
+        const resizedImage = document.getElementById('resizedImage');
+        const resizedSize = document.getElementById('resizedSize');
+
+        // State variables
+        let originalImage = null;
+        let currentWidth = 0;
+        let currentHeight = 0;
+        let resizedImageData = null;
+
+        // Event Listeners
+        browseButton.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+        processBtn.addEventListener('click', processImage);
+        downloadBtn.addEventListener('click', downloadResizedImage);
+        resetBtn.addEventListener('click', resetApp);
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('bg-blue-50');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('bg-blue-50');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('bg-blue-50');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+
+        // Resolution options
+        resolutionOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                // Remove active class from all options
+                resolutionOptions.forEach(opt => opt.classList.remove('active'));
+                // Add active class to clicked option
+                option.classList.add('active');
+                
+                // Set custom inputs to selected values
+                customWidth.value = option.dataset.width;
+                customHeight.value = option.dataset.height;
+                
+                currentWidth = parseInt(option.dataset.width);
+                currentHeight = parseInt(option.dataset.height);
+            });
+        });
+
+        // Custom resolution inputs
+        customWidth.addEventListener('input', () => {
+            // Remove active class from all preset options
+            resolutionOptions.forEach(opt => opt.classList.remove('active'));
+            currentWidth = parseInt(customWidth.value) || 0;
+        });
+
+        customHeight.addEventListener('input', () => {
+            // Remove active class from all preset options
+            resolutionOptions.forEach(opt => opt.classList.remove('active'));
+            currentHeight = parseInt(customHeight.value) || 0;
+        });
+
+        // Quality slider
+        qualitySlider.addEventListener('input', () => {
+            qualityValue.textContent = `${qualitySlider.value}%`;
+            // Update thumb position
+            const thumb = document.querySelector('.slider-thumb');
+            const percent = (qualitySlider.value - 10) / 90;
+            thumb.style.left = `calc(${percent * 100}% - ${percent * 12}px)`;
+        });
+
+        // Functions
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (!file || !file.type.match('image.*')) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                originalImage = new Image();
+                originalImage.onload = () => {
+                    // Display original image
+                    previewImage.src = e.target.result;
+                    
+                    // Set original size info
+                    originalSize.textContent = `Обычный размер: ${originalImage.width} × ${originalImage.height} pixels`;
+                    
+                    // Set default custom dimensions
+                    customWidth.value = originalImage.width;
+                    customHeight.value = originalImage.height;
+                    currentWidth = originalImage.width;
+                    currentHeight = originalImage.height;
+                    
+                    // Clear resized image
+                    resizedImage.src = '';
+                    resizedSize.textContent = '';
+                    
+                    // Show preview section
+                    previewSection.classList.remove('hidden');
+                    
+                    // Scroll to preview
+                    previewSection.scrollIntoView({ behavior: 'smooth' });
+                };
+                originalImage.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function processImage() {
+            if (!originalImage || currentWidth <= 0 || currentHeight <= 0) return;
+
+            // Show processing overlay
+            processingOverlay.classList.remove('hidden');
+
+            // Use setTimeout to allow UI to update before processing
+            setTimeout(() => {
+                try {
+                    // Create canvas for resizing
+                    const canvas = document.createElement('canvas');
+                    canvas.width = currentWidth;
+                    canvas.height = currentHeight;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Draw resized image
+                    ctx.drawImage(originalImage, 0, 0, currentWidth, currentHeight);
+                    
+                    // Get quality value (0-1)
+                    const quality = parseInt(qualitySlider.value) / 100;
+                    
+                    // Store resized image data
+                    resizedImageData = canvas.toDataURL('image/jpeg', quality);
+                    
+                    // Display resized image
+                    resizedImage.src = resizedImageData;
+                    resizedSize.textContent = `Изменёный размер: ${currentWidth} × ${currentHeight} pixels.`;
+                } catch (error) {
+                    console.error('Ошибка:', error.);
+                    alert('Не удалось. Попробуйте ещё раз.');
+                } finally {
+                    // Hide processing overlay
+                    processingOverlay.classList.add('hidden');
+                }
+            }, 100);
+        }
+
+        function downloadResizedImage() {
+            if (!resizedImageData) {
+                alert('Пожалуйста измените размер сначала.');
+                return;
+            }
+
+            // Create download link
+            const link = document.createElement('a');
+            link.download = 'resized-image.jpg';
+            link.href = resizedImageData;
+            
+            // Trigger download
+            link.click();
+        }
+
+        function resetApp() {
+            // Reset file input
+            fileInput.value = '';
+            
+            // Hide preview section
+            previewSection.classList.add('hidden');
+            
+            // Reset resolution options
+            resolutionOptions.forEach(opt => opt.classList.remove('active'));
+            
+            // Reset custom inputs
+            customWidth.value = '';
+            customHeight.value = '';
+            
+            // Reset quality slider
+            qualitySlider.value = 90;
+            qualityValue.textContent = '90%';
+            const thumb = document.querySelector('.slider-thumb');
+            thumb.style.left = '90%';
+            
+            // Reset state
+            originalImage = null;
+            currentWidth = 0;
+            currentHeight = 0;
+            resizedImageData = null;
+        }
+    </script>
+</body>
+</html>
